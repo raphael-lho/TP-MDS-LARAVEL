@@ -23,3 +23,4 @@ require __DIR__.'/auth.php';
 
 
 Route::get('/locations', [BoxesController::class, 'index']);
+Route::post('/web/boxes/{box}/toggle-status', [BoxesController::class, 'toggleStatus'])->name('boxes.toggleStatus');

@@ -17,4 +17,12 @@ class BoxesController extends Controller
         $boxes = Boxes::all();
         return view('locations', compact('boxes'));
     }
+
+    public function toggleStatus(Request $request, Boxes $box)
+    {
+        $box->status = $box->status === 0 ? 1 : 0;
+        $box->save();
+
+        return response()->json(['status' => $box->status]);
+    }
 }

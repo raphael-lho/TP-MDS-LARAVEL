@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>RaphCorp - Gestion de locations de box</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.bunny.net/css?family=figtree:400,600&display=swap" rel="stylesheet" />
@@ -40,6 +41,23 @@
 
         .float-animation {
             animation: float 3s ease-in-out infinite;
+        }
+
+        .float-animation:hover {
+            animation-play-state: paused;
+        }
+
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #68D391;
+        }
+
+        .toggle-checkbox:not(:checked)+.toggle-label {
+            background-color: #F56565;
         }
     </style>
 </head>
@@ -99,8 +117,29 @@
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     @foreach ($boxes as $box)
-                        <div
-                            class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg float-animation">
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg float-animation"
+                            x-data="{
+                                status: {{ $box->status }},
+                                async toggleStatus() {
+                                    try {
+                                        const response = await fetch('/web/boxes/{{ $box->id }}/toggle-status', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                                            }
+                                        });
+                                        if (response.ok) {
+                                            const data = await response.json();
+                                            this.status = data.status;
+                                        } else {
+                                            console.error('Failed to update status');
+                                        }
+                                    } catch (error) {
+                                        console.error('Error:', error);
+                                    }
+                                }
+                            }">
                             <img src="https://picsum.photos/800/40{{ rand(0, 9) }}" alt="Image de la box"
                                 class="w-full h-48 object-cover">
                             <div class="p-6">
@@ -117,9 +156,20 @@
                                 <p class="text-gray-900 dark:text-gray-100 mb-4">
                                     Prix: {{ $box->price }} €
                                 </p>
-                                <p class="text-gray-900 dark:text-gray-100 mb-4">
-                                    Statut: {{ $box->status }}
-                                </p>
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-gray-900 dark:text-gray-100">Statut:</span>
+                                    <div
+                                        class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="toggle" id="toggle-{{ $box->id }}"
+                                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                            :checked="status === 0" @click="toggleStatus">
+                                        <label for="toggle-{{ $box->id }}"
+                                            class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer"></label>
+                                    </div>
+                                    <span x-text="status === 0 ? 'Disponible' : 'Loué'"
+                                        :class="{ 'text-green-600': status === 0, 'text-red-600': status === 1 }">
+                                    </span>
+                                </div>
                                 <a href="#"
                                     class="text-blue-600 dark:text-blue-400 hover:underline transition-all duration-300 ease-in-out hover:text-blue-800 dark:hover:text-blue-200">
                                     Réserver
@@ -133,8 +183,49 @@
     </main>
 
 
-
     <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            alpha: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('background-animation').appendChild(renderer.domElement);
+
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x0000ff,
+            wireframe: true
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        camera.position.z = 5;
+
+        function onMouseMove(event) {
+            const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            sphere.rotation.x = mouseY * Math.PI;
+            sphere.rotation.y = mouseX * Math.PI;
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 
 </html>
