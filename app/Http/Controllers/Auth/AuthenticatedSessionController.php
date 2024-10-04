@@ -24,7 +24,6 @@ class AuthenticatedSessionController extends Controller
    {
        $request->authenticate();
        $request->session()->regenerate();
-       dd('Login successful'); // Ajoutez cette ligne
        return redirect()->intended(route('locations', absolute: false));
    }
 
