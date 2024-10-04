@@ -56,13 +56,4 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
-
-    Route::get('/locations', function () {
-        return view('locations');  // Assurez-vous d'avoir une vue 'locations.blade.php'
-    })->name('locations');
 });
-
-// Redirection par défaut après authentification
-Route::get('/home', function () {
-    return redirect()->route('locations');
-})->middleware('auth')->name('home');
